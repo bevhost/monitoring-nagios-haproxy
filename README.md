@@ -26,6 +26,10 @@ quorum of servers, and that the session limits haven't been reached).
 Enable/disable checks for the servers in HAProxy (that they haven't reached the
 limits for the sessions or for queues).
 
+### -l --[no]limits
+
+Enable/disable checks that the limits on sessions and queues haven't been reached.
+
 ### -D, --defaults (defaults)
 
 Set/Override the defaults which will be applied to all checks (unless
