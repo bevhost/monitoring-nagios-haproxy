@@ -134,6 +134,7 @@ our (%opt, %data, %checks);
   'check_frontends' => 1,
   'check_backends'  => 1,
   'check_servers'   => 1,
+  'check_limits'    => 1,
   'socket'          => '/var/run/haproxy.sock',
   'debug'           => 0,
   'verbose'         => 0,
@@ -151,6 +152,7 @@ sub main {
     'f'       => \$opt{'check_frontends'}, 'frontends!'       => \$opt{'check_frontends'},
     'b'       => \$opt{'check_backends'},  'backends!'        => \$opt{'check_backends'},
     's'       => \$opt{'check_servers'},   'servers!'         => \$opt{'check_servers'},
+    'l'       => \$opt{'check_limits'},    'limits!'          => \$opt{'check_limits'},
     'S=s'     => \$opt{'socket'},          'socket=s'         => \$opt{'socket'},
     'd'       => \$opt{'debug'},           'debug!'           => \$opt{'debug'},
     'v'       => \$opt{'verbose'},         'verbose!'         => \$opt{'verbose'},
@@ -516,6 +518,7 @@ sub check_frontends {
     # Theses no supported Queueing on the Frontends, so no checks for that
     # need to be done here, just for Sessions.
 
+    next unless $opt{'check_limits'};
     next unless $data{$service}{'sessions'}{'limit'} > 0;
     _debug('check_frontends', 'running Sessions check');
     _debug('check_frontends', _('found %d (limit %d); thresholds are %.1f%%, %.1f%%',
@@ -584,6 +587,7 @@ sub check_backends {
       unless check_pass($checks{$service}{'state'}, $checks{$service}{'be_warn'},
         ($checks{$service}{'state'} eq 'u' ? $up : ($down+$disabled)), $total);
 
+    next unless $opt{'check_limits'};
     next unless $data{$service}{'sessions'}{'limit'} > 0;
     _debug('check_frontends', 'running Sessions check');
     _debug('check_backends', _('found %d (limit %d); threshold is %.1f%% (warn) or %.1f%% (crit)',
@@ -623,6 +627,7 @@ sub check_servers {
       next if $data{$service}{'servers'}{$server}{'backend'};
       _debug('check_servers', _('checking SERVER %s on BACKEND %s', $server, $service));
 
+      next unless $opt{'check_limits'};
       if ($data{$service}{'servers'}{$server}{'sessions'}{'limit'} > 0) {
         _debug('check_servers', 'running Sessions check');
         _debug('check_servers', _('found %d (limit %d); thresholds are %.1f%%, %.1f%%',
@@ -648,7 +653,6 @@ sub check_servers {
           unless check_pass('t', $checks{$service}{'limit_warn'},
                                  $data{$service}{'servers'}{$server}{'sessions'}{'current'},
                                  $data{$service}{'servers'}{$server}{'sessions'}{'limit'});
-
       }
 
       if ($data{$service}{'servers'}{$server}{'queued'}{'limit'} > 0) {
@@ -702,17 +706,21 @@ check_haproxy [--defaults (defaults)] [--overrides S<(1 2 ... n)>]
 =item B<-f>, B<--[no]frontends>
 
 Enable/disable checks for the frontends in HAProxy (that they're marked as OPEN
-and the session limits haven't been reached).
+and optionally that the session limits haven't been reached).
 
 =item B<-b>, B<--[no]backends>
 
 Enable/disable checks for the backends in HAProxy (that they have the required
-quorum of servers, and that the session limits haven't been reached).
+quorum of servers and optionally that the session limits haven't been reached).
 
 =item B<-s>, B<--[no]servers>
 
 Enable/disable checks for the servers in HAProxy (that they haven't reached the
 limits for the sessions or for queues).
+
+=item B<-l>, B<--[no]limits>
+
+Enable/disable checks that the limits on sessions and queues haven't been reached.
 
 =item B<-D>, B<--defaults> I<defaults>
 
@@ -808,6 +816,7 @@ set for each frontend/backend.
          - Remove sanity check forcing a maximum value to be blow any threshold
            as it seams that in some cases this is possible in HAProxy.
 1.0.4    - Add verbose mode to output all issues instead of exiting on first one.
+         - Add ablitiy to enable/disable checking of session/queue limits.
 
 =head1 AUTHOR
 
